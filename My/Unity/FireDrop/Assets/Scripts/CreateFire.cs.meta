@@ -1,0 +1,13 @@
+fileFormatVersion: 2
+guid: b46f07e0cf81034458a8867279f21a82
+MonoImporter:
+  externalObjects: {}
+  serializedVersion: 2
+  defaultReferences:
+  - counterCanvas: {instanceID: 0}
+  - counterPrefab: {fileID: 1483711799816057942, guid: eb562140753cc93458c3e362041b5bc9, type: 3}
+  executionOrder: 0
+  icon: {instanceID: 0}
+  userData: 
+  assetBundleName: 
+  assetBundleVariant: 
