@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityStandardAssets.CrossPlatformInput;
 
 public class FireExtinguishing : MonoBehaviour
 {
@@ -14,7 +15,7 @@ public class FireExtinguishing : MonoBehaviour
 
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.Space))
+        if (Input.GetKeyDown(KeyCode.Space) || CrossPlatformInputManager.GetButtonDown("Extinguishing"))
         {
             Extinguishing();
         }
@@ -35,7 +36,7 @@ public class FireExtinguishing : MonoBehaviour
         {
             GetComponent<SpriteRenderer>().sprite = item;
             if (item == smokeSprites[smokeSprites.Length - 1]) break;
-            yield return new WaitForSeconds(1 / (smokeSprites.Length - 1));
+            yield return new WaitForSeconds(2 / (smokeSprites.Length - 1));
         }
         GetComponent<SpriteRenderer>().sprite = null;
         isSmoke = false;

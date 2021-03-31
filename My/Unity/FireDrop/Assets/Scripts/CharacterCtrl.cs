@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityStandardAssets.CrossPlatformInput;
 
 public class CharacterCtrl : MonoBehaviour
 {
@@ -17,9 +18,22 @@ public class CharacterCtrl : MonoBehaviour
 
     void Update()
     {
-        axisX = Input.GetAxis("Horizontal");
-        axisY = Input.GetAxis("Vertical");
 
+#if UNITY_EDITOR
+        axisX = CrossPlatformInputManager.GetAxis("Horizontal");
+        axisY = CrossPlatformInputManager.GetAxis("Vertical");
+#elif !UNITY_EDITOR
+        if (Application.platform == RuntimePlatform.Android || Application.platform == RuntimePlatform.IPhonePlayer)
+        {
+            axisX = CrossPlatformInputManager.GetAxis("Horizontal");
+            axisY = CrossPlatformInputManager.GetAxis("Vertical");
+        }
+        else
+        {
+            axisX = Input.GetAxis("Horizontal");
+            axisY = Input.GetAxis("Vertical");
+        }
+#endif
         rb2D.velocity = new Vector2(axisX * moveSpeed, rb2D.gravityScale == 1 ? rb2D.velocity.y : axisY * moveSpeed * 0.75f);
         if (axisX != 0)
         {

@@ -8,41 +8,33 @@ public class ApartmentCtrl : MonoBehaviour
     [SerializeField] private Sprite[] animSprites;
     private Text countText;
     private GameManager gameManager;
-
-    private bool hasFire = false;
-
-    public bool HasFire
-    {
-        get { return hasFire; }
-        set
-        {
-            if (value == hasFire)
-                return;
-
-            hasFire = value;
-            if (hasFire)
-            {
-                GetComponent<Collider2D>().enabled = true;
-                StartCoroutine(CounterAndChangeSprite(Random.Range(8, 14)));
-            }
-        }
-    }
+    private GameObject counterObject;
+    private GameObject counterCanvas;
+    private int count = 0;
+    private int currentSprite = 1;
+    private int apartmentIndex;
 
     private void Awake()
     {
+        counterCanvas = GameObject.FindGameObjectWithTag("CounterCanvas").gameObject;
         gameManager = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameManager>();
         GetComponent<Collider2D>().enabled = false;
         GetComponent<SpriteRenderer>().sprite = animSprites[0];
     }
 
-    private IEnumerator CounterAndChangeSprite(int second)
+    public IEnumerator CounterAndChangeSprite(int second, int apartmentIndex)
     {
-        GameObject counterObject = GameObject.FindGameObjectWithTag("CounterCanvas").gameObject.transform.Find($"{this.gameObject.name}_Counter").gameObject;
+        this.apartmentIndex = apartmentIndex;
+        GetComponent<Collider2D>().enabled = true;
+
+        counterObject = counterCanvas.transform.Find($"{apartmentIndex}_Counter").gameObject;
         countText = counterObject.GetComponentInChildren<Text>();
         countText.text = second.ToString();
-        int currentSprite = 1;
-        int count = 0;
+        currentSprite = 1;
+        count = 0;
+
         GetComponent<SpriteRenderer>().sprite = animSprites[currentSprite];
+
         while (true)
         {
             if (animSprites.Length - 1 == currentSprite)
@@ -51,73 +43,81 @@ public class ApartmentCtrl : MonoBehaviour
                 {
                     for (int i = 0; i < (second / (animSprites.Length - 1)); i++)
                     {
-                        if (!hasFire)
+                        if (!CreateFire.hasFire[this.apartmentIndex])
                         {
                             DestroyCounterObject();
+                            break;
                         }
                         yield return new WaitForSeconds(1);
-                        Count();
+                        Count(second);
                     }
                 }
                 else
                 {
                     for (int i = 0; i < ((second / (animSprites.Length - 1)) + (second % (animSprites.Length - 1))); i++)
                     {
-                        if (!hasFire)
+                        if (!CreateFire.hasFire[this.apartmentIndex])
                         {
                             DestroyCounterObject();
+                            break;
                         }
                         yield return new WaitForSeconds(1);
-                        Count();
+                        Count(second);
                     }
                 }
 
-                gameManager.DisableRedOfHeart();
+                if (count == second)
+                {
+                    DestroyCounterObject();
+                    gameManager.DisableRedOfHeart();
+                }
+                break;
+            }
+
+            if (!CreateFire.hasFire[this.apartmentIndex])
+            {
                 DestroyCounterObject();
                 break;
             }
-            if (!hasFire)
-            {
-                DestroyCounterObject();
-            }
+
             yield return new WaitForSeconds(1);
-            Count();
+            Count(second);
+
             if (count % (second / (animSprites.Length - 1)) == 0)
             {
                 currentSprite++;
                 GetComponent<SpriteRenderer>().sprite = animSprites[currentSprite];
             };
         }
+    }
 
-        void Count()
+    private void Count(int second)
+    {
+        if (!CreateFire.hasFire[this.apartmentIndex])
         {
-            if (!hasFire)
-            {
-                DestroyCounterObject();
-            }
-            else
-            {
-                count++;
-                countText.text = (second - count).ToString();
-            }
-
+            DestroyCounterObject();
         }
-
-        void DestroyCounterObject()
+        else
         {
-            StopCoroutine("CounterAndChangeSprite");
-            GetComponent<SpriteRenderer>().sprite = animSprites[0];
-            Destroy(counterObject);
+            count++;
+            countText.text = (second - count).ToString();
         }
+    }
+
+    private void DestroyCounterObject()
+    {
+        StopCoroutine("CounterAndChangeSprite");
+        GetComponent<SpriteRenderer>().sprite = animSprites[0];
+        Destroy(counterObject);
     }
 
     private void OnTriggerStay2D(Collider2D other)
     {
         if (other.tag == "Smoke" && FireExtinguishing.isSmoke)
         {
-            GameManager.score += 2;
+            CreateFire.hasFire[apartmentIndex] = false;
             GetComponent<Collider2D>().enabled = false;
-            hasFire = false;
+            GameManager.score += 2;
         }
     }
 }
