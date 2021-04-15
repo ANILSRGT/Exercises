@@ -10,20 +10,52 @@ public class GameManager : MonoBehaviour
     [Header("Squares Panel")]
     [SerializeField] private GameObject squarePrefab;
     [SerializeField] private Transform squaresPanel;
+
+    [Header("Squares Panel")]
+    [SerializeField] private Sprite[] squareSprites;
     private GameObject[] squares = new GameObject[25];
 
     [Header("Question Panel")]
     [SerializeField] private Transform questionPanel;
     [SerializeField] private Text questionTxt;
 
+    [Header("End Game Panel")]
+    [SerializeField] private GameObject endGamePanel;
+
+    [Header("Other")]
+    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioClip buttonClip;
+
     //Other Variables
     private List<int> sectionValuesList = new List<int>();
+    private GameObject selectedSquare;
     private int dividend, divisor;
     private int whichQuestion;
+    private int correctResult;
     private int buttonTextValue;
+    private int remainingHealth;
+    private bool canPressButton;
+    private GameLevelEnums.QuestionDifficultyLevel questionDifficultyLevel;
+    private RemainingHealthsManager remainingHealthsManager;
+    private ScoreManager scoreManager;
+
+    private void Awake()
+    {
+
+        remainingHealth = 3;
+        endGamePanel.GetComponent<RectTransform>().localScale = Vector3.zero;
+
+        remainingHealthsManager = Object.FindObjectOfType<RemainingHealthsManager>();
+        scoreManager = Object.FindObjectOfType<ScoreManager>();
+
+        remainingHealthsManager.ReaminingHealthCtrl(remainingHealth);
+
+    }
 
     private void Start()
     {
+        canPressButton = false;
+
         questionPanel.GetComponent<RectTransform>().localScale = Vector3.zero;
 
         CreateSquares();
@@ -34,6 +66,7 @@ public class GameManager : MonoBehaviour
         for (int i = 0; i < 25; i++)
         {
             GameObject square = Instantiate(squarePrefab, squaresPanel);
+            square.transform.GetChild(1).GetComponent<Image>().sprite = squareSprites[Random.Range(0, squareSprites.Length)];
             square.GetComponent<Button>().onClick.AddListener(() => OnClickSquareButton());
             squares[i] = square;
         }
@@ -46,9 +79,53 @@ public class GameManager : MonoBehaviour
 
     private void OnClickSquareButton()
     {
-        buttonTextValue = int.Parse(EventSystem.current.currentSelectedGameObject.transform.GetChild(0).GetComponent<Text>().text);
+        if (canPressButton)
+        {
+            audioSource.PlayOneShot(buttonClip);
+            selectedSquare = EventSystem.current.currentSelectedGameObject;
+
+            buttonTextValue = int.Parse(selectedSquare.transform.GetChild(0).GetComponent<Text>().text);
+
+            CheckToResult();
+        }
     }
 
+    private void CheckToResult()
+    {
+        if (buttonTextValue == correctResult)
+        {
+            selectedSquare.transform.GetChild(0).GetComponent<Text>().enabled = false;
+            selectedSquare.transform.GetChild(1).GetComponent<Image>().enabled = true;
+            selectedSquare.transform.GetComponent<Button>().interactable = false;
+
+            scoreManager.AddScore(questionDifficultyLevel);
+            sectionValuesList.RemoveAt(whichQuestion);
+
+            if (sectionValuesList.Count <= 0)
+            {
+                EndGame();
+                return;
+            }
+
+            ActiveTheQuestionPanel();
+        }
+        else
+        {
+            remainingHealth--;
+            remainingHealthsManager.ReaminingHealthCtrl(remainingHealth);
+        }
+
+        if (remainingHealth <= 0)
+        {
+            EndGame();
+        }
+    }
+
+    private void EndGame()
+    {
+        canPressButton = false;
+        endGamePanel.GetComponent<RectTransform>().DOScale(1, 0.5f).SetEase(Ease.OutBack);
+    }
 
     IEnumerator DoFadeRoutine()
     {
@@ -72,14 +149,31 @@ public class GameManager : MonoBehaviour
     private void ActiveTheQuestionPanel()
     {
         AskTheQuestion();
-        questionPanel.GetComponent<RectTransform>().DOScale(1, 0.5f).SetEase(Ease.OutBack);
+        // The isButtonPress will be true when the questionPanel is active and the animation is complete.
+        questionPanel.GetComponent<RectTransform>().DOScale(1, 0.5f).SetEase(Ease.OutBack).OnComplete(() => canPressButton = true);
+
     }
 
     private void AskTheQuestion()
     {
         divisor = Random.Range(2, 11);
         whichQuestion = Random.Range(0, sectionValuesList.Count);
-        dividend = divisor * sectionValuesList[whichQuestion];
+        correctResult = sectionValuesList[whichQuestion];
+        dividend = divisor * correctResult;
+
+        if (dividend <= 40)
+        {
+            questionDifficultyLevel = GameLevelEnums.QuestionDifficultyLevel.EASY;
+        }
+        else if (dividend > 40 && dividend <= 80)
+        {
+            questionDifficultyLevel = GameLevelEnums.QuestionDifficultyLevel.MEDIUM;
+        }
+        else
+        {
+            questionDifficultyLevel = GameLevelEnums.QuestionDifficultyLevel.HARD;
+        }
+
         questionTxt.text = dividend.ToString() + " / " + divisor.ToString();
     }
 }
